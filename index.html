@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旅行持ち物リスト自動生成</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 16px;
+    background: #f5f7fa;
+    color: #222;
+    line-height: 1.6;
+  }
+  h1 { font-size: 1.5rem; margin-bottom: 8px; }
+  .subtitle { color: #666; margin-bottom: 24px; font-size: 0.9rem; }
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+  }
+  label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+  }
+  input, select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    font-size: 1rem;
+    margin-bottom: 16px;
+    background: #fff;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: #0969da;
+    box-shadow: 0 0 0 3px rgba(9,105,218,0.15);
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .checkbox-group label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #f0f3f6;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 400;
+    margin-bottom: 0;
+    font-size: 0.9rem;
+  }
+  .checkbox-group input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+  }
+  button {
+    background: #0969da;
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+  }
+  button:hover { background: #0860c7; }
+  .result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .result-header h2 { font-size: 1.2rem; margin: 0; }
+  .summary {
+    color: #555;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    background: #f0f7ff;
+    border-left: 3px solid #0969da;
+    border-radius: 4px;
+  }
+  .category { margin-bottom: 18px; }
+  .category-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0969da;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e5e9ef;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+  }
+  .item input[type="checkbox"] { width: 18px; height: 18px; margin: 0; }
+  .item label {
+    margin: 0;
+    font-weight: 400;
+    cursor: pointer;
+    flex: 1;
+  }
+  .item input[type="checkbox"]:checked + label {
+    text-decoration: line-through;
+    color: #999;
+  }
+  .hidden { display: none; }
+  .actions {
+    display: flex;
+    gap: 8px;
+  }
+  .actions button {
+    flex: 1;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+  }
+  .btn-secondary {
+    background: #fff;
+    color: #0969da;
+    border: 1px solid #0969da;
+  }
+  .btn-secondary:hover { background: #f0f7ff; }
+</style>
+</head>
+<body>
+  <h1>旅行持ち物リスト自動生成</h1>
+  <p class="subtitle">場所と日程を入力すると、持ち物リストを作ります。</p>
+
+  <div class="card">
+    <label for="destination">目的地</label>
+    <input type="text" id="destination" placeholder="例: 沖縄、北海道、ハワイ" />
+
+    <div class="row">
+      <div>
+        <label for="startDate">出発日</label>
+        <input type="date" id="startDate" />
+      </div>
+      <div>
+        <label for="endDate">帰着日</label>
+        <input type="date" id="endDate" />
+      </div>
+    </div>
+
+    <label for="climate">気候</label>
+    <select id="climate">
+      <option value="auto">自動判定（月から推定）</option>
+      <option value="hot">暑い（夏・南国）</option>
+      <option value="warm">暖かい（春・秋）</option>
+      <option value="cold">寒い（冬・雪）</option>
+      <option value="tropical">熱帯（高温多湿）</option>
+    </select>
+
+    <label for="purpose">旅行の目的</label>
+    <select id="purpose">
+      <option value="leisure">観光・レジャー</option>
+      <option value="business">ビジネス・出張</option>
+      <option value="outdoor">アウトドア・登山</option>
+      <option value="beach">ビーチ・マリン</option>
+    </select>
+
+    <label>オプション</label>
+    <div class="checkbox-group">
+      <label><input type="checkbox" id="optRain"> 雨の予報あり</label>
+      <label><input type="checkbox" id="optIntl"> 海外旅行</label>
+      <label><input type="checkbox" id="optKids"> 子連れ</label>
+      <label><input type="checkbox" id="optCamera"> カメラ持参</label>
+    </div>
+
+    <button id="generateBtn">持ち物リストを作成</button>
+  </div>
+
+  <div class="card hidden" id="resultCard">
+    <div class="result-header">
+      <h2>持ち物リスト</h2>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div id="listContainer"></div>
+    <div class="actions">
+      <button class="btn-secondary" id="copyBtn">テキストでコピー</button>
+      <button class="btn-secondary" id="resetBtn">チェックをリセット</button>
+    </div>
+  </div>
+
+<script>
+const RULES = {
+  essentials: {
+    title: "必需品",
+    items: [
+      { name: "財布・現金", always: true },
+      { name: "クレジットカード", always: true },
+      { name: "スマートフォン", always: true },
+      { name: "充電器・ケーブル", always: true },
+      { name: "モバイルバッテリー", always: true },
+      { name: "身分証明書", always: true },
+      { name: "常備薬", always: true },
+      { name: "マスク", always: true },
+    ],
+  },
+  toiletries: {
+    title: "洗面・衛生",
+    items: [
+      { name: "歯ブラシ・歯磨き粉", always: true },
+      { name: "シャンプー・リンス（小分け）", always: true },
+      { name: "ボディソープ・石鹸", always: true },
+      { name: "タオル", always: true },
+      { name: "ヘアブラシ", always: true },
+      { name: "スキンケア用品", always: true },
+      { name: "化粧品・メイク道具", always: true },
+      { name: "生理用品", always: true },
+      { name: "ひげそり", always: true },
+    ],
+  },
+  clothing: {
+    title: "衣類",
+    items: [], // 動的生成
+  },
+  climate: {
+    title: "気候対策",
+    items: [], // 動的生成
+  },
+  purpose: {
+    title: "目的別アイテム",
+    items: [], // 動的生成
+  },
+  extras: {
+    title: "便利グッズ",
+    items: [
+      { name: "ビニール袋・ジップロック", always: true },
+      { name: "ティッシュ・ウェットティッシュ", always: true },
+      { name: "筆記用具", always: true },
+      { name: "折りたたみバッグ（サブバッグ）", always: true },
+    ],
+  },
+};
+
+function estimateClimate(month) {
+  if ([12, 1, 2].includes(month)) return "cold";
+  if ([3, 4, 5, 10, 11].includes(month)) return "warm";
+  if ([6, 7, 8, 9].includes(month)) return "hot";
+  return "warm";
+}
+
+function detectTropicalDestination(dest) {
+  const keywords = ["沖縄", "ハワイ", "グアム", "バリ", "タイ", "シンガポール", "フィリピン", "セブ", "プーケット"];
+  return keywords.some(k => dest.includes(k));
+}
+
+function detectColdDestination(dest) {
+  const keywords = ["北海道", "スキー", "雪", "アラスカ", "フィンランド", "アイスランド"];
+  return keywords.some(k => dest.includes(k));
+}
+
+function generateClothingItems(days, climate) {
+  const items = [];
+  const underwearCount = Math.min(days, 7);
+  const socksCount = Math.min(days, 7);
+  const topsCount = Math.max(1, Math.ceil(days * 0.7));
+  const bottomsCount = Math.max(1, Math.ceil(days / 3));
+
+  items.push({ name: `下着 ×${underwearCount}日分`, always: true });
+  items.push({ name: `靴下 ×${socksCount}日分`, always: true });
+  items.push({ name: `トップス ×${topsCount}枚`, always: true });
+  items.push({ name: `ボトムス ×${bottomsCount}枚`, always: true });
+  items.push({ name: "パジャマ・部屋着", always: true });
+
+  if (climate === "hot" || climate === "tropical") {
+    items.push({ name: "Tシャツ（多めに）", always: true });
+    items.push({ name: "短パン", always: true });
+  }
+  if (climate === "cold") {
+    items.push({ name: "厚手のセーター", always: true });
+    items.push({ name: "ヒートテック（インナー）", always: true });
+  }
+  if (climate === "warm") {
+    items.push({ name: "薄手の羽織りもの", always: true });
+  }
+  return items;
+}
+
+function generateClimateItems(climate) {
+  const items = [];
+  if (climate === "hot" || climate === "tropical") {
+    items.push({ name: "日焼け止め", always: true });
+    items.push({ name: "サングラス", always: true });
+    items.push({ name: "帽子（日除け）", always: true });
+    items.push({ name: "うちわ・ハンディファン", always: true });
+  }
+  if (climate === "tropical") {
+    items.push({ name: "虫よけスプレー", always: true });
+    items.push({ name: "かゆみ止め", always: true });
+  }
+  if (climate === "cold") {
+    items.push({ name: "コート・ダウンジャケット", always: true });
+    items.push({ name: "マフラー", always: true });
+    items.push({ name: "手袋", always: true });
+    items.push({ name: "ニット帽", always: true });
+    items.push({ name: "カイロ", always: true });
+    items.push({ name: "リップクリーム", always: true });
+  }
+  if (climate === "warm") {
+    items.push({ name: "薄手のジャケット", always: true });
+  }
+  return items;
+}
+
+function generatePurposeItems(purpose) {
+  const items = [];
+  if (purpose === "business") {
+    items.push({ name: "スーツ・ジャケット", always: true });
+    items.push({ name: "ワイシャツ・ブラウス", always: true });
+    items.push({ name: "革靴・パンプス", always: true });
+    items.push({ name: "ネクタイ", always: true });
+    items.push({ name: "名刺", always: true });
+    items.push({ name: "ノートパソコン", always: true });
+    items.push({ name: "PC充電器", always: true });
+    items.push({ name: "資料・書類", always: true });
+  }
+  if (purpose === "outdoor") {
+    items.push({ name: "トレッキングシューズ", always: true });
+    items.push({ name: "レインウェア", always: true });
+    items.push({ name: "速乾性のウェア", always: true });
+    items.push({ name: "リュック", always: true });
+    items.push({ name: "水筒", always: true });
+    items.push({ name: "行動食・エナジーバー", always: true });
+    items.push({ name: "ヘッドライト", always: true });
+  }
+  if (purpose === "beach") {
+    items.push({ name: "水着", always: true });
+    items.push({ name: "ビーチサンダル", always: true });
+    items.push({ name: "ビーチタオル", always: true });
+    items.push({ name: "ラッシュガード", always: true });
+    items.push({ name: "防水ポーチ", always: true });
+    items.push({ name: "シュノーケルセット", always: true });
+  }
+  if (purpose === "leisure") {
+    items.push({ name: "歩きやすい靴（スニーカー）", always: true });
+    items.push({ name: "ガイドブック・地図", always: true });
+    items.push({ name: "お土産用のエコバッグ", always: true });
+  }
+  return items;
+}
+
+function generateExtraItems(options) {
+  const items = [];
+  if (options.rain) {
+    items.push({ name: "折りたたみ傘", always: true });
+    items.push({ name: "レインコート", always: true });
+  }
+  if (options.intl) {
+    items.push({ name: "パスポート", always: true });
+    items.push({ name: "航空券・eチケット", always: true });
+    items.push({ name: "海外旅行保険証", always: true });
+    items.push({ name: "変換プラグ", always: true });
+    items.push({ name: "外貨・両替", always: true });
+    items.push({ name: "翻訳アプリ", always: true });
+    items.push({ name: "SIMカード・海外Wi-Fi", always: true });
+  }
+  if (options.kids) {
+    items.push({ name: "子供の着替え（多めに）", always: true });
+    items.push({ name: "おむつ・おしりふき", always: true });
+    items.push({ name: "お気に入りのおもちゃ", always: true });
+    items.push({ name: "子供用おやつ", always: true });
+    items.push({ name: "母子手帳・保険証", always: true });
+  }
+  if (options.camera) {
+    items.push({ name: "カメラ本体", always: true });
+    items.push({ name: "予備バッテリー", always: true });
+    items.push({ name: "SDカード", always: true });
+    items.push({ name: "三脚（必要なら）", always: true });
+  }
+  return items;
+}
+
+function calculateDays(start, end) {
+  if (!start || !end) return 1;
+  const s = new Date(start);
+  const e = new Date(end);
+  const diff = Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1;
+  return Math.max(1, diff);
+}
+
+function generate() {
+  const dest = document.getElementById("destination").value.trim() || "目的地未指定";
+  const startDate = document.getElementById("startDate").value;
+  const endDate = document.getElementById("endDate").value;
+  const purpose = document.getElementById("purpose").value;
+  let climate = document.getElementById("climate").value;
+
+  const options = {
+    rain: document.getElementById("optRain").checked,
+    intl: document.getElementById("optIntl").checked,
+    kids: document.getElementById("optKids").checked,
+    camera: document.getElementById("optCamera").checked,
+  };
+
+  const days = calculateDays(startDate, endDate);
+
+  if (climate === "auto") {
+    if (detectTropicalDestination(dest)) {
+      climate = "tropical";
+    } else if (detectColdDestination(dest)) {
+      climate = "cold";
+    } else if (startDate) {
+      const month = new Date(startDate).getMonth() + 1;
+      climate = estimateClimate(month);
+    } else {
+      climate = "warm";
+    }
+  }
+
+  const climateLabel = { hot: "暑い", warm: "暖かい", cold: "寒い", tropical: "熱帯" }[climate];
+  const purposeLabel = { leisure: "観光", business: "出張", outdoor: "アウトドア", beach: "ビーチ" }[purpose];
+
+  document.getElementById("summary").textContent =
+    `${dest} / ${days}日間 / 気候: ${climateLabel} / 目的: ${purposeLabel}`;
+
+  RULES.clothing.items = generateClothingItems(days, climate);
+  RULES.climate.items = generateClimateItems(climate);
+  RULES.purpose.items = generatePurposeItems(purpose);
+
+  const extras = [...RULES.extras.items, ...generateExtraItems(options)];
+
+  const categories = [
+    { title: RULES.essentials.title, items: RULES.essentials.items },
+    { title: RULES.clothing.title, items: RULES.clothing.items },
+    { title: RULES.toiletries.title, items: RULES.toiletries.items },
+    { title: RULES.climate.title, items: RULES.climate.items },
+    { title: RULES.purpose.title, items: RULES.purpose.items },
+    { title: "便利グッズ・その他", items: extras },
+  ];
+
+  renderList(categories);
+  document.getElementById("resultCard").classList.remove("hidden");
+  document.getElementById("resultCard").scrollIntoView({ behavior: "smooth" });
+}
+
+function renderList(categories) {
+  const container = document.getElementById("listContainer");
+  container.innerHTML = "";
+  let idx = 0;
+  categories.forEach(cat => {
+    if (cat.items.length === 0) return;
+    const div = document.createElement("div");
+    div.className = "category";
+    const title = document.createElement("div");
+    title.className = "category-title";
+    title.textContent = cat.title;
+    div.appendChild(title);
+    cat.items.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "item";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.id = `item-${idx}`;
+      const lbl = document.createElement("label");
+      lbl.htmlFor = cb.id;
+      lbl.textContent = item.name;
+      row.appendChild(cb);
+      row.appendChild(lbl);
+      div.appendChild(row);
+      idx++;
+    });
+    container.appendChild(div);
+  });
+}
+
+function copyAsText() {
+  const categories = document.querySelectorAll(".category");
+  const lines = [];
+  lines.push(document.getElementById("summary").textContent);
+  lines.push("");
+  categories.forEach(cat => {
+    const title = cat.querySelector(".category-title").textContent;
+    lines.push(`【${title}】`);
+    cat.querySelectorAll(".item label").forEach(lbl => {
+      lines.push(`・${lbl.textContent}`);
+    });
+    lines.push("");
+  });
+  const text = lines.join("\n");
+  navigator.clipboard.writeText(text).then(() => {
+    alert("リストをコピーしました");
+  }).catch(() => {
+    prompt("コピーに失敗しました。以下を手動でコピーしてください:", text);
+  });
+}
+
+function resetChecks() {
+  document.querySelectorAll("#listContainer input[type='checkbox']").forEach(cb => {
+    cb.checked = false;
+  });
+}
+
+document.getElementById("generateBtn").addEventListener("click", generate);
+document.getElementById("copyBtn").addEventListener("click", copyAsText);
+document.getElementById("resetBtn").addEventListener("click", resetChecks);
+</script>
+</body>
+</html>

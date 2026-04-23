@@ -207,14 +207,20 @@ const RULES = {
   essentials: {
     title: "必需品",
     items: [
-      { name: "財布・現金", always: true },
+      { name: "財布", always: true },
+      { name: "現金", always: true },
       { name: "クレジットカード", always: true },
-      { name: "スマートフォン", always: true },
+      { name: "スマホ", always: true },
       { name: "充電器・ケーブル", always: true },
       { name: "モバイルバッテリー", always: true },
       { name: "身分証明書", always: true },
-      { name: "常備薬", always: true },
+      { name: "飲み薬", always: true },
+      { name: "塗り薬", always: true },
+      { name: "のど飴", always: true },
       { name: "マスク", always: true },
+      { name: "ポーチ", always: true },
+      { name: "小さめのカバン（サブバッグ）", always: true },
+      { name: "折りたたみ傘", always: true },
     ],
   },
   toiletries: {
@@ -224,11 +230,12 @@ const RULES = {
       { name: "シャンプー・リンス（小分け）", always: true },
       { name: "ボディソープ・石鹸", always: true },
       { name: "タオル", always: true },
+      { name: "タオルハンカチ", always: true },
       { name: "ヘアブラシ", always: true },
       { name: "スキンケア用品", always: true },
       { name: "化粧品・メイク道具", always: true },
       { name: "生理用品", always: true },
-      { name: "ひげそり", always: true },
+      { name: "髭剃り", always: true },
     ],
   },
   clothing: {
@@ -246,10 +253,11 @@ const RULES = {
   extras: {
     title: "便利グッズ",
     items: [
-      { name: "ビニール袋・ジップロック", always: true },
-      { name: "ティッシュ・ウェットティッシュ", always: true },
+      { name: "ゴミ袋・ビニール袋", always: true },
+      { name: "ジップロック", always: true },
+      { name: "ティッシュ", always: true },
+      { name: "ウェットティッシュ", always: true },
       { name: "筆記用具", always: true },
-      { name: "折りたたみバッグ（サブバッグ）", always: true },
     ],
   },
 };
@@ -364,8 +372,8 @@ function generatePurposeItems(purpose) {
 function generateExtraItems(options) {
   const items = [];
   if (options.rain) {
-    items.push({ name: "折りたたみ傘", always: true });
     items.push({ name: "レインコート", always: true });
+    items.push({ name: "濡れ物用のビニール袋", always: true });
   }
   if (options.intl) {
     items.push({ name: "パスポート", always: true });
